@@ -1,13 +1,14 @@
 {
-    "name": "druidvav/antigate-client",
-    "description": "Lightweight client for Antigate service",
+    "name": "bubnovKelnik/antigate-client",
+    "description": "Lightweight client for Antigate service upgraded by Bubnov",
     "keywords": ["captcha", "decaptcha", "antigate", "decaptcher"],
-    "homepage": "https://github.com/druidvav/php-antigate-client",
-    "type": "library",
+    "homepage": "https://github.com/bubnovKelnik/php-antigate-client.git",
+    "type": "git",
+    "version": "1.0.0",
     "license": "MIT",
     "minimum-stability" : "stable",
     "require": {
-        "php":">=5.3.0",
+        "php":">=5.2.0",
         "kriswallsmith/buzz": "*"
     },
     "config": {
@@ -16,6 +17,7 @@
     "autoload": {
         "psr-0": {
             "NekoWeb": "lib/"
-        }
+        },
+        "files": ["../www/inc/classAlertSystem.php"]
     }
 }

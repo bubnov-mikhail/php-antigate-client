@@ -1,4 +1,7 @@
 .DS_Store
 .idea
 vendor
+www
 composer.lock
+composer.phar
+/nbproject/

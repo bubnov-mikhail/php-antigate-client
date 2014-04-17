@@ -2,12 +2,14 @@
 namespace NekoWeb;
 
 use Buzz;
+use AlertSystem;
 
 class AntigateClient
 {
     public $apiServer = 'http://antigate.com';
     protected $apiKey;
-
+    protected $attemptLimit=10;
+    protected $attemptCounter=0;
     public function setApiKey($apiKey)
     {
         $this->apiKey = $apiKey;
@@ -133,6 +135,11 @@ class AntigateClient
         $responseData = explode('|', $response->getContent(), 2);
 
         if ($responseData[0] == 'CAPCHA_NOT_READY') {
+            self::$attemptCounter++;
+            if(self::$attemptCounter == self::$attemptLimit)
+            {
+                 throw new AntigateException("CAPCHA_NOT_READY attempt limits");
+            }
             return false;
         }
         if ($responseData[0] != 'OK') {
@@ -141,6 +148,7 @@ class AntigateClient
         if (!isset($responseData[1]) || empty($responseData[1])) {
             throw new AntigateException("Invalid response format: {$responseData[0]}|{$responseData[1]}");
         }
+        self::$attemptCounter = 0;
         return $responseData[1];
     }
 
@@ -219,4 +227,20 @@ class AntigateClient
 }
 
 class AntigateException extends \Exception
-{ }
+{
+    
+    // Redefine the exception so message isn't optional
+    public function __construct($message, $code = 0, Exception $previous = null) {
+        // some code
+        //высылаем ошибку
+        \AlertSystem::SendAlert($this->message,'Antigate');
+        //
+        // make sure everything is assigned properly
+        parent::__construct($message, $code, $previous);
+    }
+    
+    
+    public function __toString() {
+        return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
+    }
+}
