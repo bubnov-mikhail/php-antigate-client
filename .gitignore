@@ -5,3 +5,4 @@ www
 composer.lock
 composer.phar
 /nbproject/
+test
