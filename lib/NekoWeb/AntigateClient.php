@@ -2,14 +2,14 @@
 namespace NekoWeb;
 
 use Buzz;
-use AlertSystem;
 
 class AntigateClient
 {
     public $apiServer = 'http://antigate.com';
     protected $apiKey;
-    protected $attemptLimit=10;
+    static protected $attemptLimit=10;
     protected $attemptCounter=0;
+    protected $lastId;
     public function setApiKey($apiKey)
     {
         $this->apiKey = $apiKey;
@@ -42,6 +42,18 @@ class AntigateClient
             sleep(5);
             $captchaText = $this->checkStatus($captchaId);
         } while ($captchaText === false);
+        return $captchaText;
+    }
+    /**
+     * @param string $filename
+     * @return string
+     */
+    public function recognizeEmulation($filename)
+    {
+        echo "\nPlease, solve the capcha located here: ".$filename."\n";
+        $handle = fopen ("php://stdin","r");
+        $captchaText = trim(fgets($handle));
+        echo "\nСпасибо!";
         return $captchaText;
     }
 
@@ -108,14 +120,15 @@ class AntigateClient
         ))));
 
         $responseData = explode('|', $response->getContent(), 2);
-
+        $responseData[1] = isset($responseData[1]) ? $responseData[1] : '';
         if ($responseData[0] != 'OK') {
-            throw new AntigateException($responseData[0]);
+            throw new AntigateException($responseData[0].'|'.$responseData[1]);
         }
         if (!isset($responseData[1]) || !is_numeric($responseData[1])) {
             throw new AntigateException("Invalid response format: {$responseData[0]}|{$responseData[1]}");
         }
-        return (int) $responseData[1];
+        $this->lastId = (int) $responseData[1];
+        return $this->lastId;
     }
 
     /**
@@ -123,9 +136,10 @@ class AntigateClient
      * @return string|boolean
      * @throws AntigateException
      */
-    public function checkStatus($id)
+    public function checkStatus($id=0)
     {
         $browser = new Buzz\Browser();
+        $id = !$id ? $id : $this->lastId;
         $response = $browser->get("{$this->apiServer}/res.php?" . http_build_query(array(
                 'action' => 'get',
                 'key'    => $this->apiKey,
@@ -135,8 +149,8 @@ class AntigateClient
         $responseData = explode('|', $response->getContent(), 2);
 
         if ($responseData[0] == 'CAPCHA_NOT_READY') {
-            self::$attemptCounter++;
-            if(self::$attemptCounter == self::$attemptLimit)
+            $this->attemptCounter++;
+            if($this->attemptCounter == self::$attemptLimit)
             {
                  throw new AntigateException("CAPCHA_NOT_READY attempt limits");
             }
@@ -148,7 +162,7 @@ class AntigateClient
         if (!isset($responseData[1]) || empty($responseData[1])) {
             throw new AntigateException("Invalid response format: {$responseData[0]}|{$responseData[1]}");
         }
-        self::$attemptCounter = 0;
+        $this->attemptCounter = 0;
         return $responseData[1];
     }
 
@@ -159,7 +173,7 @@ class AntigateClient
      */
     public function checkStatusBatch($ids)
     {
-//		http://antigate.com/res.php?key=ваш_ключ_здесь_32_байта_длиной&action=get&ids=ID_1,ID_2,...,ID_N
+//	http://antigate.com/res.php?key=ваш_ключ_здесь_32_байта_длиной&action=get&ids=ID_1,ID_2,...,ID_N
         throw new AntigateException("Not implemented yet");
     }
 
@@ -175,6 +189,22 @@ class AntigateClient
             )));
 
         return (float) $response->getContent();
+    }
+    
+    /**
+     * @return float
+     */
+    public function sendReportBad($id=0)
+    {
+        $browser = new Buzz\Browser();
+        $id = !$id ? $id : $this->lastId;
+        $response = $browser->get("{$this->apiServer}/res.php?" . http_build_query(array(
+                'action' => 'reportbad',
+                'id' => $id,
+                'key'    => $this->apiKey
+            )));
+
+        return $response->getContent();
     }
 
     /**
@@ -229,18 +259,4 @@ class AntigateClient
 class AntigateException extends \Exception
 {
     
-    // Redefine the exception so message isn't optional
-    public function __construct($message, $code = 0, Exception $previous = null) {
-        // some code
-        //высылаем ошибку
-        \AlertSystem::SendAlert($this->message,'Antigate');
-        //
-        // make sure everything is assigned properly
-        parent::__construct($message, $code, $previous);
-    }
-    
-    
-    public function __toString() {
-        return __CLASS__ . ": [{$this->code}]: {$this->message}\n";
-    }
 }
