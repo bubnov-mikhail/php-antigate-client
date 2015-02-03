@@ -1,5 +1,5 @@
 {
-    "name": "bubnovKelnik/antigate-client",
+    "name": "bubnovKelnik/php-antigate-client",
     "description": "Lightweight client for Antigate service upgraded by Bubnov",
     "keywords": ["captcha", "decaptcha", "antigate", "decaptcher"],
     "homepage": "https://github.com/bubnovKelnik/php-antigate-client.git",
